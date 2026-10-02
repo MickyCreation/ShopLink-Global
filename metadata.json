@@ -1,0 +1,6 @@
+{
+  "name": "ShopLink - Nigerian Marketplace & Shopping Assistance",
+  "description": "All-in-one Nigerian e-commerce marketplace and shopping concierge for everything: groceries, gadgets, devices, computers, vehicles, fashion, and local services with escrow protection.",
+  "requestFramePermissions": ["geolocation"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
