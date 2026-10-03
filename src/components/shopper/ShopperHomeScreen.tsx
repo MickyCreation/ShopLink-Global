@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import { useApp } from '../../context/AppContext';
 import { AndroidTopAppBar } from '../android/AndroidTopAppBar';
 import { NigerianCurrency } from '../common/NigerianCurrency';
-import { StateBadge } from '../common/StateBadge';
 import { HERO_BANNER_IMAGE, MOCK_CATEGORIES } from '../../services/mock/mockData';
 import {
   Search,
@@ -15,11 +14,6 @@ import {
   ChevronRight,
   TrendingUp,
   MapPin,
-  ShieldCheck,
-  ShieldAlert,
-  FileCheck,
-  Clock,
-  Edit3,
   Smartphone,
   Laptop,
   Car,
@@ -39,13 +33,15 @@ export const ShopperHomeScreen: React.FC = () => {
     navigateTo,
     navigateToCategory,
     setIsLocationModalOpen,
-    openKycModal,
-    openProfileEditModal,
     availableHelpers,
     openHelperProfile
   } = useApp();
 
   const [searchQuery, setSearchQuery] = useState('');
+  const [helperFilter, setHelperFilter] = useState<'ALL' | 'SELLERS_ONLY'>('ALL');
+
+  const helpersWhoAreSellers = availableHelpers.filter(h => h.isSeller);
+  const displayedHelpers = helperFilter === 'SELLERS_ONLY' ? helpersWhoAreSellers : availableHelpers;
 
   const renderCategoryIcon = (iconName: string) => {
     switch (iconName) {
@@ -146,88 +142,6 @@ export const ShopperHomeScreen: React.FC = () => {
                 Track Live <ArrowRight className="w-3 h-3" />
               </span>
             </div>
-          </div>
-        )}
-
-        {/* KNOW YOUR CUSTOMER (KYC) & SECURITY IMPLEMENTATION CARD */}
-        {currentUser?.kyc?.status !== 'VERIFIED' ? (
-          <div className="p-4 sm:p-5 rounded-3xl bg-gradient-to-r from-emerald-950 via-slate-900 to-slate-950 text-white border border-emerald-500/30 shadow-md space-y-3 relative overflow-hidden">
-            <div className="flex items-start justify-between gap-3">
-              <div className="flex items-start gap-3">
-                <div className="w-10 h-10 rounded-2xl bg-emerald-600/30 border border-emerald-500/50 flex items-center justify-center text-emerald-400 shrink-0 mt-0.5">
-                  {currentUser?.kyc?.status === 'UNDER_REVIEW' ? (
-                    <Clock className="w-5 h-5 animate-pulse text-amber-400" />
-                  ) : (
-                    <ShieldAlert className="w-5 h-5 text-emerald-400" />
-                  )}
-                </div>
-                <div>
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <span className="text-[10px] font-bold uppercase tracking-widest text-emerald-400">
-                      SECURITY IMPLEMENTATION · CBN AML COMPLIANT
-                    </span>
-                    <span
-                      className={`text-[9px] font-bold px-2 py-0.5 rounded-full ${
-                        currentUser?.kyc?.status === 'UNDER_REVIEW'
-                          ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30'
-                          : 'bg-rose-500/20 text-rose-300 border border-rose-500/30'
-                      }`}
-                    >
-                      {currentUser?.kyc?.status === 'UNDER_REVIEW'
-                        ? 'Documents Under Review'
-                        : 'KYC Action Required'}
-                    </span>
-                  </div>
-                  <h3 className="text-sm font-black text-white mt-1">
-                    {currentUser?.kyc?.status === 'UNDER_REVIEW'
-                      ? 'Identity Verification in Progress'
-                      : 'Submit ID & Update Profile for KYC Verification'}
-                  </h3>
-                  <p className="text-[11px] text-slate-300 mt-1 leading-relaxed">
-                    {currentUser?.kyc?.status === 'UNDER_REVIEW'
-                      ? `Your ${currentUser?.kyc?.idType?.replace(/_/g, ' ') || 'ID document'} is currently being verified by platform compliance. You will be notified once Tier 2 status is unlocked.`
-                      : 'Under Nigerian banking and consumer protection standards, submit your National ID (NIN, Driver’s License, Passport, or Voter’s Card) and update your profile to guarantee delivery escrow protection and seamless shopping.'}
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            <div className="flex flex-wrap items-center gap-2 pt-1 border-t border-slate-800">
-              <button
-                onClick={openKycModal}
-                className="py-2 px-3.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shadow-sm transition active:scale-95 flex items-center gap-1.5 cursor-pointer"
-              >
-                <FileCheck className="w-3.5 h-3.5" />
-                <span>
-                  {currentUser?.kyc?.status === 'UNDER_REVIEW'
-                    ? 'View / Update Submitted Documents'
-                    : 'Submit Government ID (NIN/Card)'}
-                </span>
-              </button>
-
-              <button
-                onClick={openProfileEditModal}
-                className="py-2 px-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 font-semibold text-xs transition active:scale-95 flex items-center gap-1.5 cursor-pointer"
-              >
-                <Edit3 className="w-3.5 h-3.5 text-emerald-400" />
-                <span>Update Profile Details</span>
-              </button>
-            </div>
-          </div>
-        ) : (
-          <div className="py-1.5 px-3 rounded-2xl bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-200 dark:border-emerald-800/80 flex items-center justify-between text-xs">
-            <div className="flex items-center gap-2">
-              <ShieldCheck className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
-              <span className="text-[11px] font-bold text-emerald-800 dark:text-emerald-300">
-                Verified Citizen: KYC Tier 2 Protected (NIN / National ID on File)
-              </span>
-            </div>
-            <button
-              onClick={openKycModal}
-              className="text-[10px] text-emerald-700 dark:text-emerald-400 font-bold hover:underline cursor-pointer"
-            >
-              View Record
-            </button>
           </div>
         )}
 
@@ -402,61 +316,123 @@ export const ShopperHomeScreen: React.FC = () => {
           </div>
 
           {/* Nearby Shopping Helpers Banner */}
-          <div className="p-4 sm:p-5 rounded-3xl bg-emerald-50/70 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-900/60 flex flex-col justify-between">
+          <div id="helpers-showcase-section" className="p-4 sm:p-5 rounded-3xl bg-emerald-50/70 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-900/60 flex flex-col justify-between">
             <div>
               <div className="flex items-center justify-between mb-2">
                 <span className="text-xs font-bold text-emerald-900 dark:text-emerald-300 uppercase tracking-wider flex items-center gap-1.5">
                   <Bike className="w-4 h-4 text-emerald-600" /> Active Shopping Helpers Near You
                 </span>
                 <span className="text-[10px] font-bold bg-emerald-600 text-white px-2 py-0.5 rounded-full">
-                  {availableHelpers.length} Online
+                  {displayedHelpers.length} Available
                 </span>
               </div>
               <p className="text-xs text-slate-600 dark:text-slate-300 mb-3">
                 Verified couriers ready to pick up goods from sellers, inspect items, and run market procurement.
               </p>
 
+              {/* Filter Tabs: All vs Helpers Who Are Also Sellers */}
+              <div className="flex items-center gap-1.5 mb-3 bg-white dark:bg-slate-800 p-1 rounded-xl border border-emerald-200/60 dark:border-emerald-800/40">
+                <button
+                  type="button"
+                  onClick={() => setHelperFilter('ALL')}
+                  className={`flex-1 py-1.5 px-2 rounded-lg text-xs font-bold transition flex items-center justify-center gap-1 cursor-pointer ${
+                    helperFilter === 'ALL'
+                      ? 'bg-emerald-600 text-white shadow-xs'
+                      : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
+                  }`}
+                >
+                  <Bike className="w-3.5 h-3.5" />
+                  <span>All Couriers ({availableHelpers.length})</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setHelperFilter('SELLERS_ONLY')}
+                  className={`flex-1 py-1.5 px-2 rounded-lg text-xs font-bold transition flex items-center justify-center gap-1 cursor-pointer ${
+                    helperFilter === 'SELLERS_ONLY'
+                      ? 'bg-indigo-600 text-white shadow-xs'
+                      : 'text-indigo-700 dark:text-indigo-300 hover:bg-indigo-50 dark:hover:bg-indigo-950/40'
+                  }`}
+                >
+                  <Store className="w-3.5 h-3.5" />
+                  <span>Helpers Who Are Sellers ({helpersWhoAreSellers.length})</span>
+                </button>
+              </div>
+
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                {availableHelpers.slice(0, 4).map(helper => (
+                {displayedHelpers.slice(0, 4).map(helper => (
                   <div
                     key={helper.id}
                     onClick={() => openHelperProfile(helper)}
-                    className="p-3 rounded-2xl bg-white dark:bg-slate-800 border border-emerald-100 dark:border-emerald-900/40 hover:border-emerald-500 hover:shadow-xs transition cursor-pointer active:scale-98 flex flex-col justify-between group"
+                    className={`p-3 rounded-2xl border transition cursor-pointer active:scale-98 flex flex-col justify-between group ${
+                      helper.isSeller
+                        ? 'bg-white dark:bg-slate-800 border-indigo-200 dark:border-indigo-800/60 hover:border-indigo-500 hover:shadow-xs'
+                        : 'bg-white dark:bg-slate-800 border-emerald-100 dark:border-emerald-900/40 hover:border-emerald-500 hover:shadow-xs'
+                    }`}
                   >
-                    <div className="flex items-start justify-between gap-2">
-                      <div className="flex items-center gap-2.5 min-w-0">
-                        <img
-                          src={helper.avatarUrl || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150'}
-                          alt={helper.name}
-                          className="w-9 h-9 rounded-xl object-cover shrink-0 border border-slate-200 dark:border-slate-700"
-                        />
-                        <div className="min-w-0">
-                          <h5 className="text-xs font-bold text-slate-800 dark:text-slate-200 truncate group-hover:text-emerald-600 transition">
-                            {helper.name}
-                          </h5>
-                          <span className="text-[10px] text-slate-400 block truncate">
-                            {helper.vehicleType} · {helper.completedJobsCount} runs
-                          </span>
+                    <div>
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="flex items-center gap-2.5 min-w-0">
+                          <img
+                            src={helper.avatarUrl || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150'}
+                            alt={helper.name}
+                            className="w-10 h-10 rounded-xl object-cover shrink-0 border border-slate-200 dark:border-slate-700"
+                          />
+                          <div className="min-w-0">
+                            <h5 className="text-xs font-bold text-slate-800 dark:text-slate-200 truncate group-hover:text-emerald-600 transition">
+                              {helper.name}
+                            </h5>
+                            <span className="text-[10px] text-slate-400 block truncate">
+                              {helper.vehicleType} · {helper.completedJobsCount} runs
+                            </span>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center text-xs font-bold text-amber-500 shrink-0">
+                          <Star className="w-3 h-3 fill-current mr-0.5" /> {helper.rating}
                         </div>
                       </div>
 
-                      <div className="flex items-center text-xs font-bold text-amber-500 shrink-0">
-                        <Star className="w-3 h-3 fill-current mr-0.5" /> {helper.rating}
-                      </div>
+                      {/* DUAL IDENTITY INDICATOR: Helper who is also a Seller */}
+                      {helper.isSeller && (
+                        <div className="mt-2.5 p-2 rounded-xl bg-gradient-to-r from-indigo-50 to-purple-50 dark:from-indigo-950/60 dark:to-purple-950/40 border border-indigo-100 dark:border-indigo-800/60 space-y-1">
+                          <div className="flex items-center justify-between gap-1 text-[10px]">
+                            <span className="inline-flex items-center gap-1 font-extrabold text-indigo-700 dark:text-indigo-300 truncate">
+                              <Store className="w-3.5 h-3.5 shrink-0 text-indigo-600 dark:text-indigo-400" />
+                              <span className="truncate">{helper.sellerStoreName}</span>
+                            </span>
+                            <span className="px-1.5 py-0.2 bg-amber-400 text-slate-950 font-black text-[9px] rounded-sm shrink-0">
+                              Seller & Helper
+                            </span>
+                          </div>
+                          <div className="text-[10px] text-slate-500 dark:text-slate-400 truncate">
+                            📍 {helper.sellerStoreAddress}
+                          </div>
+                        </div>
+                      )}
                     </div>
 
-                    {/* DUAL IDENTITY INDICATOR: Helper who is also a Seller */}
-                    {helper.isSeller && (
-                      <div className="mt-2 pt-2 border-t border-slate-100 dark:border-slate-700/60 flex items-center justify-between gap-1 text-[10px]">
-                        <span className="inline-flex items-center gap-1 font-bold text-indigo-700 dark:text-indigo-300 truncate">
-                          <Store className="w-3 h-3 shrink-0 text-indigo-600 dark:text-indigo-400" />
-                          <span className="truncate">{helper.sellerStoreName}</span>
-                        </span>
-                        <span className="px-1.5 py-0.2 bg-indigo-50 dark:bg-indigo-950/80 text-indigo-600 dark:text-indigo-300 font-extrabold text-[9px] rounded-sm shrink-0 border border-indigo-200 dark:border-indigo-800/40">
-                          Seller & Helper
-                        </span>
-                      </div>
-                    )}
+                    <div className="mt-2.5 pt-2 border-t border-slate-100 dark:border-slate-700/60 flex items-center justify-between text-[11px]">
+                      <span className="text-emerald-600 dark:text-emerald-400 font-semibold group-hover:underline">
+                        View Profile & Bio ➔
+                      </span>
+                      {helper.isSeller && (
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            if (helper.sellerCategory) {
+                              navigateToCategory(helper.sellerCategory);
+                            } else {
+                              navigateToCategory('All');
+                            }
+                          }}
+                          className="px-2 py-0.5 rounded-md bg-indigo-50 dark:bg-indigo-900/40 text-indigo-700 dark:text-indigo-300 font-bold hover:bg-indigo-100 transition cursor-pointer"
+                        >
+                          Browse Store
+                        </button>
+                      )}
+                    </div>
                   </div>
                 ))}
               </div>
@@ -465,10 +441,17 @@ export const ShopperHomeScreen: React.FC = () => {
             <div className="flex items-center gap-2 mt-4">
               <button
                 type="button"
+                onClick={() => navigateTo('SHOPPER_ORDERS')}
+                className="flex-1 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 shadow-sm active:scale-98 cursor-pointer"
+              >
+                <Bike className="w-3.5 h-3.5" /> Send Helper to Pick Up Order
+              </button>
+              <button
+                type="button"
                 onClick={() => navigateTo('SHOPPER_CREATE_LIST')}
                 className="flex-1 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 shadow-sm active:scale-98 cursor-pointer"
               >
-                <Bike className="w-3.5 h-3.5" /> Hire for Shopping Run
+                <ClipboardList className="w-3.5 h-3.5" /> Hire for Market Run
               </button>
             </div>
           </div>

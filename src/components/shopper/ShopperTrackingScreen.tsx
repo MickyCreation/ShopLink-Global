@@ -14,7 +14,9 @@ import {
   MapPin,
   ChevronRight,
   Package,
-  AlertCircle
+  AlertCircle,
+  Store,
+  Bike
 } from 'lucide-react';
 import { ShoppingRequestStatus } from '../../types';
 
@@ -24,7 +26,10 @@ export const ShopperTrackingScreen: React.FC = () => {
     setActiveShoppingRequest,
     openChatWith,
     showSnackbar,
-    navigateTo
+    navigateTo,
+    availableHelpers,
+    openHelperProfile,
+    setSelectedCategoryFilter
   } = useApp();
 
   const [callModalOpen, setCallModalOpen] = useState(false);
@@ -167,54 +172,110 @@ export const ShopperTrackingScreen: React.FC = () => {
         </div>
 
         {/* Assigned Shopping Helper Profile & Communication */}
-        {req.assignedHelperName && (
-          <div className="p-4 rounded-3xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-xs flex items-center justify-between gap-3">
-            <div className="flex items-center gap-3">
-              <div className="w-12 h-12 rounded-full bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300 flex items-center justify-center font-bold text-base shadow-xs">
-                {req.assignedHelperName[0]}
-              </div>
-              <div>
-                <div className="flex items-center gap-1.5">
-                  <h3 className="text-xs font-bold text-slate-900 dark:text-white">
-                    {req.assignedHelperName}
-                  </h3>
-                  <ShieldCheck className="w-3.5 h-3.5 text-emerald-500" />
-                </div>
-                <p className="text-[11px] text-slate-400 mt-0.5">
-                  ★ {req.assignedHelperRating || 4.9} · Nigerian Certified Helper
-                </p>
-                <p className="text-[10px] text-emerald-600 dark:text-emerald-400 font-medium">
-                  {req.assignedHelperPhone}
-                </p>
-              </div>
-            </div>
+        {req.assignedHelperName && (() => {
+          const matchingHelper = availableHelpers.find(
+            h =>
+              h.id === req.assignedHelperId ||
+              (req.assignedHelperName && h.name.toLowerCase().includes(req.assignedHelperName.toLowerCase()))
+          );
 
-            {/* Quick Action buttons */}
-            <div className="flex items-center gap-2">
-              <button
-                onClick={() => setCallModalOpen(true)}
-                className="w-9 h-9 rounded-full bg-slate-100 dark:bg-slate-700 flex items-center justify-center text-slate-700 dark:text-slate-200 hover:bg-emerald-50 hover:text-emerald-600 transition"
-                title="Call Helper"
-              >
-                <Phone className="w-4 h-4" />
-              </button>
-              <button
-                onClick={() =>
-                  openChatWith({
-                    id: req.assignedHelperId || 'user_helper_01',
-                    name: req.assignedHelperName || 'Shopping Helper',
-                    role: 'SHOPPING_HELPER',
-                    requestId: req.id
-                  })
-                }
-                className="w-9 h-9 rounded-full bg-emerald-600 text-white flex items-center justify-center shadow-xs hover:bg-emerald-700 transition"
-                title="Chat with Helper"
-              >
-                <MessageCircle className="w-4 h-4" />
-              </button>
+          return (
+            <div className="p-4 rounded-3xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-xs space-y-3">
+              <div className="flex items-center justify-between gap-3">
+                <div className="flex items-center gap-3">
+                  <div className="w-12 h-12 rounded-full bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300 flex items-center justify-center font-bold text-base shadow-xs">
+                    {req.assignedHelperName[0]}
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      <h3 className="text-xs font-bold text-slate-900 dark:text-white">
+                        {req.assignedHelperName}
+                      </h3>
+                      <ShieldCheck className="w-3.5 h-3.5 text-emerald-500" />
+                      {matchingHelper?.isSeller && (
+                        <span className="px-1.5 py-0.2 bg-amber-400 text-slate-950 font-black text-[9px] rounded-sm">
+                          Seller & Helper
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-[11px] text-slate-400 mt-0.5">
+                      ★ {req.assignedHelperRating || 4.9} · Nigerian Certified Courier ({matchingHelper?.vehicleType || 'Motorcycle'})
+                    </p>
+                    <p className="text-[10px] text-emerald-600 dark:text-emerald-400 font-medium">
+                      {req.assignedHelperPhone}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Quick Action buttons */}
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => setCallModalOpen(true)}
+                    className="w-9 h-9 rounded-full bg-slate-100 dark:bg-slate-700 flex items-center justify-center text-slate-700 dark:text-slate-200 hover:bg-emerald-50 hover:text-emerald-600 transition"
+                    title="Call Helper"
+                  >
+                    <Phone className="w-4 h-4" />
+                  </button>
+                  <button
+                    onClick={() =>
+                      openChatWith({
+                        id: req.assignedHelperId || 'user_helper_01',
+                        name: req.assignedHelperName || 'Shopping Helper',
+                        role: 'SHOPPING_HELPER',
+                        requestId: req.id
+                      })
+                    }
+                    className="w-9 h-9 rounded-full bg-emerald-600 text-white flex items-center justify-center shadow-xs hover:bg-emerald-700 transition"
+                    title="Chat with Helper"
+                  >
+                    <MessageCircle className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+
+              {/* DUAL MERCHANT CALLOUT (If Helper also owns a store) */}
+              {matchingHelper?.isSeller && (
+                <div className="p-3 rounded-2xl bg-gradient-to-r from-indigo-50 to-purple-50 dark:from-indigo-950/60 dark:to-purple-950/40 border border-indigo-200/80 dark:border-indigo-800/60 flex items-center justify-between gap-3 text-xs">
+                  <div className="flex items-center gap-2">
+                    <Store className="w-4 h-4 text-indigo-600 shrink-0" />
+                    <div>
+                      <span className="font-bold text-indigo-900 dark:text-indigo-200 block text-[11px]">
+                        Also operates {matchingHelper.sellerStoreName}
+                      </span>
+                      <span className="text-[10px] text-slate-500 dark:text-slate-400 block">
+                        📍 {matchingHelper.sellerStoreAddress}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-1.5 shrink-0">
+                    <button
+                      type="button"
+                      onClick={() => openHelperProfile(matchingHelper)}
+                      className="px-2.5 py-1 rounded-lg border border-indigo-200 dark:border-indigo-800 text-[10px] font-bold text-indigo-700 dark:text-indigo-300 hover:bg-indigo-100/60 transition cursor-pointer"
+                    >
+                      View Profile
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (matchingHelper.sellerCategory) {
+                          setSelectedCategoryFilter(matchingHelper.sellerCategory);
+                        } else {
+                          setSelectedCategoryFilter('All');
+                        }
+                        navigateTo('SHOPPER_EXPLORE');
+                      }}
+                      className="px-2.5 py-1 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-[10px] font-bold transition cursor-pointer"
+                    >
+                      Browse Store
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
-          </div>
-        )}
+          );
+        })()}
 
         {/* Live Shopping Checklist Progress */}
         <div className="p-4 rounded-3xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-xs space-y-3">

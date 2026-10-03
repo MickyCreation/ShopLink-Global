@@ -183,6 +183,7 @@ interface AppContextType {
   approveHelperApplication: (applicationId: string) => Promise<void>;
   rejectHelperApplication: (applicationId: string, reason?: string) => Promise<void>;
   switchAccountUser: (userId: string) => Promise<void>;
+  signOut: () => Promise<void>;
 
   // Profile Update & KYC Security Implementation
   isKycModalOpen: boolean;
@@ -197,6 +198,7 @@ interface AppContextType {
   refreshKycSubmissions: () => Promise<void>;
   approveKyc: (userId: string) => Promise<void>;
   rejectKyc: (userId: string, reason?: string) => Promise<void>;
+  verifyCurrentUserKyc: () => Promise<void>;
 
   // Helper Pickup & Dual Merchant-Helper Infrastructure
   availableHelpers: AvailableHelper[];
@@ -553,6 +555,15 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     showSnackbar(`Logged in as ${user.name} (${user.role.replace('_', ' ')} Account)`);
   };
 
+  const signOut = async () => {
+    await authService.logout();
+    const shopperUser = await authService.getCurrentUser();
+    setCurrentUser(shopperUser);
+    setUserRole('SHOPPER');
+    setCurrentScreen('SHOPPER_HOME');
+    showSnackbar('Signed out successfully.');
+  };
+
   const isMergedSellerHelper = Boolean(
     currentUser?.role === 'SELLER' && (currentUser as SellerUser).isMergedSellerHelper
   );
@@ -674,6 +685,18 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
       showSnackbar(`KYC rejected for ${updated.name}.`);
     } catch (err: any) {
       showSnackbar(err.message || 'Failed to reject KYC.');
+    }
+  };
+
+  const verifyCurrentUserKyc = async () => {
+    if (!currentUser) return;
+    try {
+      const updated = await authService.reviewKyc(currentUser.id, 'APPROVE');
+      setCurrentUser(updated);
+      await refreshKycSubmissions();
+      showSnackbar('Identity successfully verified! KYC Tier 2 Protected.');
+    } catch (err: any) {
+      showSnackbar(err.message || 'Failed to verify KYC.');
     }
   };
 
@@ -882,6 +905,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         approveHelperApplication,
         rejectHelperApplication,
         switchAccountUser,
+        signOut,
 
         isKycModalOpen,
         setIsKycModalOpen,
@@ -895,6 +919,7 @@ export const AppProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
         refreshKycSubmissions,
         approveKyc,
         rejectKyc,
+        verifyCurrentUserKyc,
 
         availableHelpers,
         selectedHelperForDetail,

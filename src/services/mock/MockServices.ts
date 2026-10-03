@@ -343,7 +343,15 @@ export class MockAuthService implements IAuthService {
   async reviewKyc(userId: string, decision: 'APPROVE' | 'REJECT', reason?: string): Promise<AppUser> {
     const user = Object.values(this.users).find(u => u.id === userId);
     if (!user) throw new Error('User not found');
-    if (!user.kyc) throw new Error('No KYC record found for this user');
+    if (!user.kyc) {
+      user.kyc = {
+        status: 'UNDER_REVIEW',
+        tier: 'TIER_1_BASIC',
+        idType: 'NIN_CARD',
+        idNumber: '49201948302',
+        documentFileName: 'nimc_national_id_card.jpg'
+      };
+    }
 
     if (decision === 'APPROVE') {
       user.kyc.status = 'VERIFIED';

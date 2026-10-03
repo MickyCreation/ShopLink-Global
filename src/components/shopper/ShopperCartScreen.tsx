@@ -18,7 +18,10 @@ import {
   PhoneCall,
   CheckCircle2,
   Store,
-  Fingerprint
+  Fingerprint,
+  Bike,
+  Star,
+  KeyRound
 } from 'lucide-react';
 
 export const ShopperCartScreen: React.FC = () => {
@@ -35,15 +38,21 @@ export const ShopperCartScreen: React.FC = () => {
     setActiveOrder,
     showSnackbar,
     requestBiometricAuth,
-    openKycModal
+    openKycModal,
+    availableHelpers,
+    openHelperProfile
   } = useApp();
 
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
+  const [deliveryOption, setDeliveryOption] = useState<'STANDARD' | 'HELPER_PICKUP'>('STANDARD');
+  const [selectedHelperId, setSelectedHelperId] = useState<string>(availableHelpers[0]?.id || '');
   const [paymentMethod, setPaymentMethod] = useState<'CARD_PAYSTACK' | 'BANK_TRANSFER' | 'USSD' | 'CASH_ON_DELIVERY'>('CARD_PAYSTACK');
   const [isPlacingOrder, setIsPlacingOrder] = useState(false);
   const [orderSuccess, setOrderSuccess] = useState(false);
 
-  const deliveryFee = cart.length > 0 ? 2000 : 0;
+  const selectedHelper = availableHelpers.find(h => h.id === selectedHelperId) || availableHelpers[0];
+
+  const deliveryFee = cart.length > 0 ? (deliveryOption === 'HELPER_PICKUP' ? 2500 : 2000) : 0;
   const grandTotal = cartSubtotal + deliveryFee;
 
   // Group cart items by seller
@@ -62,7 +71,17 @@ export const ShopperCartScreen: React.FC = () => {
         shopperName: currentUser!.name,
         cartItems: cart,
         deliveryAddress: defaultAddress!,
-        paymentMethod
+        paymentMethod,
+        deliveryType: deliveryOption === 'HELPER_PICKUP' ? 'HELPER_PICKUP' : 'STANDARD_SHIPPING',
+        pickupHelper: deliveryOption === 'HELPER_PICKUP' && selectedHelper ? {
+          id: selectedHelper.id,
+          name: selectedHelper.name,
+          phone: selectedHelper.phone,
+          rating: selectedHelper.rating,
+          vehicleType: selectedHelper.vehicleType,
+          isSeller: selectedHelper.isSeller,
+          sellerStoreName: selectedHelper.sellerStoreName
+        } : undefined
       });
 
       if (createdOrders.length > 0) {
@@ -75,7 +94,11 @@ export const ShopperCartScreen: React.FC = () => {
         setIsCheckoutOpen(false);
         setOrderSuccess(false);
         navigateTo('SHOPPER_ORDERS');
-        showSnackbar('Payment authorized via biometrics! Order placed in Escrow.');
+        showSnackbar(
+          deliveryOption === 'HELPER_PICKUP'
+            ? `Payment verified! Courier Helper ${selectedHelper?.name} dispatched to pick up from seller.`
+            : 'Payment authorized via biometrics! Order placed in Escrow.'
+        );
       }, 1500);
     } catch {
       showSnackbar('Failed to place order. Please try again.');
@@ -282,6 +305,154 @@ export const ShopperCartScreen: React.FC = () => {
                 <p className="text-[11px] text-slate-500">
                   Recipient: {currentUser?.name} · {defaultAddress?.contactPhone}
                 </p>
+              </div>
+
+              {/* Delivery & Fulfillment Method Selection */}
+              <div>
+                <span className="text-xs font-bold text-slate-800 dark:text-slate-200 block mb-2 uppercase tracking-wider">
+                  Fulfillment & Delivery Method
+                </span>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mb-3">
+                  <div
+                    onClick={() => setDeliveryOption('STANDARD')}
+                    className={`p-3 rounded-2xl border transition cursor-pointer flex items-start gap-2.5 ${
+                      deliveryOption === 'STANDARD'
+                        ? 'border-emerald-600 bg-emerald-50/50 dark:bg-emerald-950/30 ring-1 ring-emerald-600'
+                        : 'border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800/40'
+                    }`}
+                  >
+                    <input
+                      type="radio"
+                      name="deliveryTypeSelection"
+                      checked={deliveryOption === 'STANDARD'}
+                      onChange={() => setDeliveryOption('STANDARD')}
+                      className="mt-0.5 text-emerald-600 focus:ring-emerald-500 w-4 h-4 cursor-pointer"
+                    />
+                    <div>
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-xs font-bold text-slate-900 dark:text-white">
+                          Standard Delivery
+                        </span>
+                        <span className="text-[10px] font-extrabold text-emerald-600 dark:text-emerald-400">
+                          ₦2,000
+                        </span>
+                      </div>
+                      <p className="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5">
+                        Seller ships via their in-house courier.
+                      </p>
+                    </div>
+                  </div>
+
+                  <div
+                    onClick={() => setDeliveryOption('HELPER_PICKUP')}
+                    className={`p-3 rounded-2xl border transition cursor-pointer flex items-start gap-2.5 ${
+                      deliveryOption === 'HELPER_PICKUP'
+                        ? 'border-indigo-600 bg-indigo-50/50 dark:bg-indigo-950/30 ring-1 ring-indigo-600'
+                        : 'border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800/40'
+                    }`}
+                  >
+                    <input
+                      type="radio"
+                      name="deliveryTypeSelection"
+                      checked={deliveryOption === 'HELPER_PICKUP'}
+                      onChange={() => setDeliveryOption('HELPER_PICKUP')}
+                      className="mt-0.5 text-indigo-600 focus:ring-indigo-500 w-4 h-4 cursor-pointer"
+                    />
+                    <div>
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <span className="text-xs font-bold text-slate-900 dark:text-white flex items-center gap-1">
+                          <Bike className="w-3.5 h-3.5 text-indigo-600" />
+                          Storefront Pickup & Dispatch
+                        </span>
+                        <span className="text-[10px] font-extrabold text-indigo-600 dark:text-indigo-400">
+                          ₦2,500
+                        </span>
+                        <span className="text-[9px] font-extrabold px-1.5 py-0.5 rounded-full bg-amber-400 text-slate-950">
+                          Courier to Store
+                        </span>
+                      </div>
+                      <p className="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5">
+                        Courier goes to seller stall, inspects goods, releases PIN.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Courier Helper Selector (when Helper Pickup chosen) */}
+                {deliveryOption === 'HELPER_PICKUP' && (
+                  <div className="p-3.5 rounded-2xl bg-indigo-50/60 dark:bg-indigo-950/40 border border-indigo-200 dark:border-indigo-800/80 space-y-2.5 mb-3 animate-in fade-in duration-150">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[11px] font-extrabold text-indigo-900 dark:text-indigo-200 uppercase tracking-wider flex items-center gap-1">
+                        <Bike className="w-3.5 h-3.5 text-indigo-600" />
+                        Select Pickup Courier
+                      </span>
+                      <span className="text-[10px] text-indigo-600 dark:text-indigo-400 font-bold">
+                        {availableHelpers.length} available
+                      </span>
+                    </div>
+
+                    <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
+                      {availableHelpers.map(helper => {
+                        const isChosen = selectedHelperId === helper.id;
+                        return (
+                          <div
+                            key={helper.id}
+                            onClick={() => setSelectedHelperId(helper.id)}
+                            className={`p-2.5 rounded-xl border transition cursor-pointer flex items-start justify-between gap-2 ${
+                              isChosen
+                                ? 'bg-white dark:bg-slate-800 border-indigo-600 ring-1 ring-indigo-600'
+                                : 'bg-white/80 dark:bg-slate-800/80 border-slate-200 dark:border-slate-700 hover:bg-white'
+                            }`}
+                          >
+                            <div className="flex items-center gap-2.5 min-w-0">
+                              <img
+                                src={helper.avatarUrl || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150'}
+                                alt={helper.name}
+                                className="w-9 h-9 rounded-xl object-cover shrink-0 border border-slate-200 dark:border-slate-700"
+                              />
+                              <div className="min-w-0">
+                                <div className="flex items-center gap-1.5 flex-wrap">
+                                  <span className="text-xs font-bold text-slate-900 dark:text-white">
+                                    {helper.name}
+                                  </span>
+                                  <div className="flex items-center text-[10px] text-amber-500 font-bold">
+                                    <Star className="w-3 h-3 fill-current mr-0.5" />
+                                    {helper.rating}
+                                  </div>
+                                </div>
+                                <span className="text-[10px] text-slate-500 dark:text-slate-400 block">
+                                  {helper.vehicleType} · {helper.completedJobsCount} trips
+                                </span>
+
+                                {/* DUAL ROLE BADGE: Helper who is also a Seller */}
+                                {helper.isSeller && (
+                                  <div className="mt-1 inline-flex items-center gap-1 px-1.5 py-0.2 rounded-md bg-amber-100 dark:bg-amber-950/80 text-amber-800 dark:text-amber-200 text-[9px] font-extrabold border border-amber-300 dark:border-amber-700">
+                                    <Store className="w-2.5 h-2.5" />
+                                    <span>Also Seller: {helper.sellerStoreName}</span>
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+
+                            <input
+                              type="radio"
+                              name="checkoutHelperSelection"
+                              checked={isChosen}
+                              onChange={() => setSelectedHelperId(helper.id)}
+                              className="mt-1 text-indigo-600 focus:ring-indigo-500 w-3.5 h-3.5 cursor-pointer shrink-0"
+                            />
+                          </div>
+                        );
+                      })}
+                    </div>
+
+                    <div className="flex items-center gap-1.5 text-[10px] text-indigo-800 dark:text-indigo-300 pt-1 border-t border-indigo-200/60 dark:border-indigo-800/60">
+                      <KeyRound className="w-3 h-3 text-indigo-600 shrink-0" />
+                      <span>A 4-digit pickup code will be generated to authorize store release upon payment.</span>
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* Payment Methods */}

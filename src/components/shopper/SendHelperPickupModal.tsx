@@ -30,7 +30,13 @@ export const SendHelperPickupModal: React.FC = () => {
   const [selectedHelperId, setSelectedHelperId] = useState<string>(
     availableHelpers[0]?.id || ''
   );
+  const [helperFilter, setHelperFilter] = useState<'ALL' | 'SELLERS_ONLY'>('ALL');
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const helpersWhoAreSellersCount = availableHelpers.filter(h => h.isSeller).length;
+  const displayedHelpers = helperFilter === 'SELLERS_ONLY'
+    ? availableHelpers.filter(h => h.isSeller)
+    : availableHelpers;
 
   if (!isSendHelperModalOpen || !orderForHelperPickup) return null;
 
@@ -123,12 +129,41 @@ export const SendHelperPickupModal: React.FC = () => {
                 Select Courier Helper
               </span>
               <span className="text-[10px] text-slate-400 font-medium">
-                Tap helper to view full merchant profile
+                Tap helper to view bio & credentials
               </span>
             </div>
 
+            {/* Filter Tabs: All vs Helpers Who Are Also Sellers */}
+            <div className="flex items-center gap-1.5 mb-3 bg-slate-100 dark:bg-slate-800 p-1 rounded-xl">
+              <button
+                type="button"
+                onClick={() => setHelperFilter('ALL')}
+                className={`flex-1 py-1.5 px-2 rounded-lg text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer ${
+                  helperFilter === 'ALL'
+                    ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-xs'
+                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
+                }`}
+              >
+                <Bike className="w-3.5 h-3.5" />
+                <span>All Helpers ({availableHelpers.length})</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setHelperFilter('SELLERS_ONLY')}
+                className={`flex-1 py-1.5 px-2 rounded-lg text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer ${
+                  helperFilter === 'SELLERS_ONLY'
+                    ? 'bg-indigo-600 text-white shadow-xs'
+                    : 'text-indigo-700 dark:text-indigo-300 hover:bg-indigo-50 dark:hover:bg-indigo-950/40'
+                }`}
+              >
+                <Store className="w-3.5 h-3.5" />
+                <span>Helpers Who Are Sellers ({helpersWhoAreSellersCount})</span>
+              </button>
+            </div>
+
             <div className="space-y-2.5">
-              {availableHelpers.map(helper => {
+              {displayedHelpers.map(helper => {
                 const isSelected = selectedHelperId === helper.id;
                 return (
                   <div
@@ -136,18 +171,20 @@ export const SendHelperPickupModal: React.FC = () => {
                     onClick={() => setSelectedHelperId(helper.id)}
                     className={`p-3 rounded-2xl border transition cursor-pointer relative ${
                       isSelected
-                        ? 'border-emerald-600 bg-emerald-50/50 dark:bg-emerald-950/30 ring-1 ring-emerald-600'
+                        ? helper.isSeller
+                          ? 'border-indigo-600 bg-indigo-50/40 dark:bg-indigo-950/30 ring-1 ring-indigo-600'
+                          : 'border-emerald-600 bg-emerald-50/50 dark:bg-emerald-950/30 ring-1 ring-emerald-600'
                         : 'border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800/40'
                     }`}
                   >
                     <div className="flex items-start justify-between gap-3">
-                      <div className="flex items-center gap-3">
+                      <div className="flex items-start gap-3">
                         <img
                           src={helper.avatarUrl || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150'}
                           alt={helper.name}
-                          className="w-11 h-11 rounded-xl object-cover border border-slate-200 dark:border-slate-700"
+                          className="w-12 h-12 rounded-xl object-cover border border-slate-200 dark:border-slate-700 shrink-0 mt-0.5"
                         />
-                        <div>
+                        <div className="min-w-0">
                           <div className="flex items-center gap-1.5 flex-wrap">
                             <span className="text-xs font-extrabold text-slate-900 dark:text-white">
                               {helper.name}
@@ -161,20 +198,35 @@ export const SendHelperPickupModal: React.FC = () => {
                           <div className="flex items-center gap-2 text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
                             <span>{helper.vehicleType}</span>
                             <span>·</span>
-                            <span>{helper.completedJobsCount} trips</span>
+                            <span>{helper.completedJobsCount} trips completed</span>
                           </div>
 
                           {/* DUAL IDENTITY BADGE: Helper who is also a Seller */}
-                          {helper.isSeller && (
-                            <div className="mt-1.5 inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-indigo-100 dark:bg-indigo-950/80 text-indigo-700 dark:text-indigo-300 text-[10px] font-bold border border-indigo-200 dark:border-indigo-800/60">
-                              <Store className="w-3 h-3" />
-                              <span>Store: {helper.sellerStoreName}</span>
+                          {helper.isSeller ? (
+                            <div className="mt-2 p-2 rounded-xl bg-gradient-to-r from-indigo-50 to-purple-50 dark:from-indigo-950/60 dark:to-purple-950/40 border border-indigo-200/80 dark:border-indigo-800/60 space-y-1">
+                              <div className="flex items-center gap-1 text-[10px] font-extrabold text-indigo-700 dark:text-indigo-300">
+                                <Store className="w-3.5 h-3.5 text-indigo-600 shrink-0" />
+                                <span>Also a Verified Seller: {helper.sellerStoreName}</span>
+                              </div>
+                              <p className="text-[10px] text-slate-600 dark:text-slate-300 line-clamp-1">
+                                {helper.sellerStoreDescription || helper.sellerStoreAddress}
+                              </p>
+                              <div className="flex items-center gap-2 text-[9px] text-indigo-600 dark:text-indigo-400 font-medium">
+                                <span>📍 {helper.sellerStoreAddress}</span>
+                                <span>·</span>
+                                <span className="font-bold text-amber-600 dark:text-amber-400">★ {helper.sellerRating || 4.9} Store Rating</span>
+                              </div>
+                            </div>
+                          ) : (
+                            <div className="mt-1 text-[10px] text-slate-400 flex items-center gap-1">
+                              <ShieldCheck className="w-3 h-3 text-emerald-500" />
+                              <span>Independent Verified Runner</span>
                             </div>
                           )}
                         </div>
                       </div>
 
-                      <div className="flex flex-col items-end gap-1.5 shrink-0">
+                      <div className="flex flex-col items-end gap-2 shrink-0">
                         <input
                           type="radio"
                           name="selectedPickupHelper"
@@ -188,7 +240,7 @@ export const SendHelperPickupModal: React.FC = () => {
                             e.stopPropagation();
                             openHelperProfile(helper);
                           }}
-                          className="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold hover:underline"
+                          className="text-[11px] text-emerald-600 dark:text-emerald-400 font-bold hover:underline px-2 py-0.5 rounded-lg bg-emerald-50 dark:bg-emerald-950/60"
                         >
                           View Bio
                         </button>
